@@ -1,6 +1,6 @@
 fn main() {
     let a = sieve_of_eratosthenes(2usize.pow(31));
-    println!("Size of {} element res: {}", a.len(), std::mem::size_of_val(&a));
+    println!("Size of {} element res: {}", a.len(), a.len() * std::mem::size_of::<usize>());
 }
 //I'm looking for numbers of the form p*q*r where p q and r are prime, and in base ten the product has the same digit frequencies as the factors
 //so I'm basically looping through a bunch of prime triplets, multiplying them out, formatting to base 10, and comparing against the digit counts of the factors
@@ -50,28 +50,28 @@ fn sieve_test() {
 
 // creates a sieve from 2 to end(exclusive)
 fn sieve_of_eratosthenes(end: usize) -> Vec<usize> {
-    let mut A: Vec<bool> = vec![true; end/2]; // remove evens
-    A[0] = false; // 1 is not a prime
-    println!("Size of {} element bool vec {}", A.len(),
-        A.len() * std::mem::size_of::<bool>());
+    let mut a: Vec<bool> = vec![true; end/2]; // remove evens
+    a[0] = false; // 1 is not a prime
+    println!("Size of {} element bool vec {}", a.len(),
+        a.len() * std::mem::size_of::<bool>());
 
     let mut i = 1; // indexes to 3 in array
     while (i*2)+1 < end {
-        if A[i] {
+        if a[i] {
             let stride = (i*2)+1;
             let mut k = i + stride;
             while k < end/2 {
-                A[k] = false;
+                a[k] = false;
                 k = k + stride;
             }
         }
         i += 1;
     }
 
-    let mut res = Vec::with_capacity(A.iter().filter(|b| **b).count()+1);
+    let mut res = Vec::with_capacity(a.iter().filter(|b| **b).count()+1);
     res.push(2); // HACK: assumes an end greater than 2
-    for i in 1..A.len() {
-        if A[i] {
+    for i in 1..a.len() {
+        if a[i] {
             res.push((i*2)+1);
         }
     }
