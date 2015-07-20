@@ -1,6 +1,6 @@
 extern crate time;
 
-const UPPER_BOUND: usize = 2 << 25;
+const UPPER_BOUND: usize = 2 << 16;
 
 fn main() {
     let start_t = time::SteadyTime::now();
@@ -20,6 +20,38 @@ fn main() {
              time::SteadyTime::now() - start_t,
              d.len(),
              d.capacity() * std::mem::size_of::<[u8; 10]>());
+
+    for i in 0..a.len()-2 {
+        for k in i..a.len()-1 {
+            if a[i] == 3 || a[k] == 3 { continue; }
+            let digits_match = find_matching_digits(i, k, &a, &d);
+            if digits_match != 0 {
+                println!("{} : Found counter example!\n\tParts: {}, {}, {}",
+                    time::SteadyTime::now() - start_t,
+                    a[i], a[k], digits_match / a[i] / a[k]);
+                return;
+           }
+        }
+        println!("{} : Done with factor {} ",
+                 time::SteadyTime::now() - start_t, a[i])
+    }
+    println!("{} : Did not find digit matching under {}",
+             time::SteadyTime::now() - start_t, UPPER_BOUND);
+}
+
+fn find_matching_digits(i: usize, k: usize,
+    primes: &Vec<usize>, digs: &Vec<[u8; 10]>) -> usize {
+        let prelim_prod = primes[i] * primes[k];
+        let prelim_digs = add_u8_10(&digs[i], &digs[k]);
+
+        for m in (k+1)..primes.len() {
+            let prod = primes[m] * prelim_prod;
+            if digits(prod) == prelim_digs {
+                return prod;
+            }
+        }
+
+        0
 }
 //I'm looking for numbers of the form p*q*r where p q and r are prime, and in base ten the product has the same digit frequencies as the factors
 //so I'm basically looping through a bunch of prime triplets, multiplying them out, formatting to base 10, and comparing against the digit counts of the factors
@@ -28,6 +60,27 @@ fn main() {
 //the 'fast' version adds an extra precomputation step, where it preformats and makes a histogram of the digit counts. 10 bytes per prime, adds about 2 gigs to memory requirement
 //but it also means every prime is formatted once, and not 200million squared times or whatever :p
 //the sieving process is already threaded, but the actual triplet checking is not. That's the next step probably, is to thread that
+
+#[test]
+fn add_test() {
+    assert_eq!(add_u8_10(&[0; 10], &[0; 10]), [0; 10]);
+    assert_eq!(add_u8_10(&[1; 10], &[3; 10]), [4; 10]);
+    assert_eq!(add_u8_10(&[0,1,2,3,4,5,6,7,8,9],
+                         &[0; 10]),
+               [0,1,2,3,4,5,6,7,8,9]);
+    assert_eq!(add_u8_10(&[0,0,0,1,2,3,0,0,0,133],
+                         &[1,2,0,0,2,0,0,0,12,22]),
+                         [1,2,0,1,4,3,0,0,12,155]);
+}
+
+fn add_u8_10(lhs: &[u8; 10], rhs: &[u8; 10]) -> [u8; 10] {
+    let mut res = [0; 10];
+    for i in 0..10 {
+        res[i] = lhs[i] + rhs[i];
+    }
+
+    res
+}
 
 #[test]
 fn digits_test() {
