@@ -1,6 +1,11 @@
 fn main() {
-    let a = sieve_of_eratosthenes(2usize.pow(31));
-    println!("Size of {} element res: {}", a.len(), a.len() * std::mem::size_of::<usize>());
+    let a = sieve_of_eratosthenes(std::u32::MAX as usize);
+    println!("Size of {} element, a: {}", a.len(), a.capacity() * std::mem::size_of::<usize>());
+    let mut d = Vec::with_capacity(a.len());
+    for p in &a {
+        d.push(digits(*p));
+    }
+    println!("Size of {} element, d: {}", d.len(), d.capacity() * std::mem::size_of::<[u8; 10]>());
 }
 //I'm looking for numbers of the form p*q*r where p q and r are prime, and in base ten the product has the same digit frequencies as the factors
 //so I'm basically looping through a bunch of prime triplets, multiplying them out, formatting to base 10, and comparing against the digit counts of the factors
@@ -17,7 +22,7 @@ fn digits_test() {
     assert_eq!(digits(1234567890), [1,1,1,1,1,1,1,1,1,1]);
 }
 
-fn digits(mut num: usize) -> [usize; 10] {
+fn digits(mut num: usize) -> [u8; 10] {
     let mut array = [0; 10];
     while num > 0 {
         let rem = num % 10;
@@ -75,11 +80,6 @@ fn sieve_of_eratosthenes(end: usize) -> Vec<usize> {
             res.push((i*2)+1);
         }
     }
-//    println!("{:?}", res);
     res
-//    A.iter().enumerate()
-//        .skip(2) // 0 and 1 are not primes
-//        .filter_map(|(i, b)| if *b { Some(i) } else { None })
-//        .collect()
 }
 
