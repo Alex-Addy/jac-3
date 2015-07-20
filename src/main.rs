@@ -23,7 +23,7 @@ fn main() {
 
     for i in 0..a.len()-2 {
         for k in i..a.len()-1 {
-            if a[i] == 3 || a[k] == 3 { continue; }
+            //if a[i] == 3 || a[k] == 3 { continue; }
             let digits_match = find_matching_digits(i, k, &a, &d);
             if digits_match != 0 {
                 println!("{} : Found counter example!\n\tParts: {}, {}, {}",
@@ -53,13 +53,6 @@ fn find_matching_digits(i: usize, k: usize,
 
         0
 }
-//I'm looking for numbers of the form p*q*r where p q and r are prime, and in base ten the product has the same digit frequencies as the factors
-//so I'm basically looping through a bunch of prime triplets, multiplying them out, formatting to base 10, and comparing against the digit counts of the factors
-//I either want a counterexample to the conjecture that all such numbers have 3 as one p q or r, or just a bunch of examples that will maybe lead to insight
-//the 'slow' version is currently the baseline, where I sieve out a few hundred million primes, and then loop over the triplets, multiply them out, then format everything and compare
-//the 'fast' version adds an extra precomputation step, where it preformats and makes a histogram of the digit counts. 10 bytes per prime, adds about 2 gigs to memory requirement
-//but it also means every prime is formatted once, and not 200million squared times or whatever :p
-//the sieving process is already threaded, but the actual triplet checking is not. That's the next step probably, is to thread that
 
 #[test]
 fn add_test() {
