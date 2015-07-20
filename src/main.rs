@@ -1,11 +1,25 @@
+extern crate time;
+
+const UPPER_BOUND: usize = 2 << 25;
+
 fn main() {
-    let a = sieve_of_eratosthenes(std::u32::MAX as usize);
-    println!("Size of {} element, a: {}", a.len(), a.capacity() * std::mem::size_of::<usize>());
+    let start_t = time::SteadyTime::now();
+
+    println!("{} : Calling sieve", time::SteadyTime::now() - start_t);
+    let a = sieve_of_eratosthenes(UPPER_BOUND);
+    println!("{} : Size of {} element, primes: {}",
+             time::SteadyTime::now() - start_t,
+             a.len(),
+             a.capacity() * std::mem::size_of::<usize>());
+
     let mut d = Vec::with_capacity(a.len());
     for p in &a {
         d.push(digits(*p));
     }
-    println!("Size of {} element, d: {}", d.len(), d.capacity() * std::mem::size_of::<[u8; 10]>());
+    println!("{} : Size of {} element, digits: {}",
+             time::SteadyTime::now() - start_t,
+             d.len(),
+             d.capacity() * std::mem::size_of::<[u8; 10]>());
 }
 //I'm looking for numbers of the form p*q*r where p q and r are prime, and in base ten the product has the same digit frequencies as the factors
 //so I'm basically looping through a bunch of prime triplets, multiplying them out, formatting to base 10, and comparing against the digit counts of the factors
