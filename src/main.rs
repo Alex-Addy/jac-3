@@ -1,6 +1,6 @@
 extern crate time;
 
-const UPPER_BOUND: usize = 2 << 16;
+const UPPER_BOUND: usize = 1 << 16;
 
 fn main() {
     let start_t = time::SteadyTime::now();
@@ -21,9 +21,9 @@ fn main() {
              d.len(),
              d.capacity() * std::mem::size_of::<[u8; 10]>());
 
-    for i in 0..a.len()-2 {
-        for k in i..a.len()-1 {
-            //if a[i] == 3 || a[k] == 3 { continue; }
+    for i in 0..a.len() {
+        for k in i..a.len() {
+            if a[i] == 3 || a[k] == 3 { continue; }
             let digits_match = find_matching_digits(i, k, &a, &d);
             if digits_match != 0 {
                 println!("{} : Found counter example!\n\tParts: {}, {}, {}",
@@ -39,14 +39,24 @@ fn main() {
              time::SteadyTime::now() - start_t, UPPER_BOUND);
 }
 
+#[test]
+fn matching_test() {
+    let primes = sieve_of_eratosthenes(1000);
+    let digits = primes.iter().map(|p| digits(*p)).collect();
+    
+    assert_eq!(1353669, find_matching_digits(0,1, &primes, &digits));
+}
+
 fn find_matching_digits(i: usize, k: usize,
     primes: &Vec<usize>, digs: &Vec<[u8; 10]>) -> usize {
         let prelim_prod = primes[i] * primes[k];
         let prelim_digs = add_u8_10(&digs[i], &digs[k]);
 
-        for m in (k+1)..primes.len() {
+        for m in k..primes.len() {
             let prod = primes[m] * prelim_prod;
-            if digits(prod) == prelim_digs {
+            let prod_digs = digits(prod);
+            let d = add_u8_10(&digits(primes[m]), &prelim_digs);
+            if d == prod_digs {
                 return prod;
             }
         }
@@ -64,6 +74,12 @@ fn add_test() {
     assert_eq!(add_u8_10(&[0,0,0,1,2,3,0,0,0,133],
                          &[1,2,0,0,2,0,0,0,12,22]),
                          [1,2,0,1,4,3,0,0,12,155]);
+
+    // testing both add and digits
+    assert_eq!(add_u8_10(
+                &add_u8_10(&digits(3), &digits(653)),
+                &digits(691)),
+            digits(1353669));
 }
 
 fn add_u8_10(lhs: &[u8; 10], rhs: &[u8; 10]) -> [u8; 10] {
