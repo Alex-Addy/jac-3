@@ -1,6 +1,7 @@
 extern crate time;
 
 const UPPER_BOUND: usize = 1 << 16;
+const THREAD_LIMIT: usize = 2;
 
 fn main() {
     let start_t = time::SteadyTime::now();
@@ -12,10 +13,7 @@ fn main() {
              a.len(),
              a.capacity() * std::mem::size_of::<usize>());
 
-    let mut d = Vec::with_capacity(a.len());
-    for p in &a {
-        d.push(digits(*p));
-    }
+    let d: Vec<[u8; 10]> = a.iter().map(|p| digits(*p)).collect();
     println!("{} : Size of {} element, digits: {}",
              time::SteadyTime::now() - start_t,
              d.len(),
@@ -23,12 +21,11 @@ fn main() {
 
     for i in 0..a.len() {
         for k in i..a.len() {
-            if a[i] == 3 || a[k] == 3 { continue; }
-            let digits_match = find_matching_digits(i, k, &a, &d);
-            if digits_match != 0 {
+            //if a[i] == 3 || a[k] == 3 { continue; }
+            if let Some(matched) = find_matching_digits(i, k, &a, &d) {
                 println!("{} : Found counter example!\n\tParts: {}, {}, {}",
                     time::SteadyTime::now() - start_t,
-                    a[i], a[k], digits_match / a[i] / a[k]);
+                    a[i], a[k], matched / a[i] / a[k]);
                 return;
            }
         }
@@ -41,27 +38,27 @@ fn main() {
 
 #[test]
 fn matching_test() {
-    let primes = sieve_of_eratosthenes(1000);
+    let primes = sieve_of_eratosthenes(1 << 16);
     let digits = primes.iter().map(|p| digits(*p)).collect();
     
-    assert_eq!(1353669, find_matching_digits(0,1, &primes, &digits));
+    assert_eq!(Some(1061583), find_matching_digits(1,17, &primes, &digits));
 }
 
 fn find_matching_digits(i: usize, k: usize,
-    primes: &Vec<usize>, digs: &Vec<[u8; 10]>) -> usize {
+    primes: &Vec<usize>, digs: &Vec<[u8; 10]>) -> Option<usize> {
         let prelim_prod = primes[i] * primes[k];
         let prelim_digs = add_u8_10(&digs[i], &digs[k]);
 
-        for m in k..primes.len() {
+        for m in std::cmp::max(k, i)..primes.len() {
             let prod = primes[m] * prelim_prod;
             let prod_digs = digits(prod);
             let d = add_u8_10(&digits(primes[m]), &prelim_digs);
             if d == prod_digs {
-                return prod;
+                return Some(prod);
             }
         }
 
-        0
+        None
 }
 
 #[test]
