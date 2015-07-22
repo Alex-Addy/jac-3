@@ -1,11 +1,16 @@
 extern crate time;
 
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::sync::mpsc::{channel, sync_channel};
+
 const UPPER_BOUND: usize = 1 << 16;
 const THREAD_LIMIT: usize = 2;
 
 fn main() {
     let start_t = time::SteadyTime::now();
 
+    // start set up {{{
     println!("{} : Calling sieve", time::SteadyTime::now() - start_t);
     let a = sieve_of_eratosthenes(UPPER_BOUND);
     println!("{} : Size of {} element, primes: {}",
@@ -18,20 +23,73 @@ fn main() {
              time::SteadyTime::now() - start_t,
              d.len(),
              d.capacity() * std::mem::size_of::<[u8; 10]>());
+    // end of set up }}}
 
-    for i in 0..a.len() {
-        for k in i..a.len() {
-            //if a[i] == 3 || a[k] == 3 { continue; }
-            if let Some(matched) = find_matching_digits(i, k, &a, &d) {
-                println!("{} : Found counter example!\n\tParts: {}, {}, {}",
-                    time::SteadyTime::now() - start_t,
-                    a[i], a[k], matched / a[i] / a[k]);
-                return;
-           }
-        }
-        println!("{} : Done with factor {} ",
-                 time::SteadyTime::now() - start_t, a[i])
+    // thread set up {{{
+    // use sync_channel for producer to keep
+    // down channel size
+    let (tx_p, rx_c) = sync_channel(THREAD_LIMIT + 1);
+    let (tx_c, rx_m) = channel();
+
+    let primes = Arc::new(a);
+    let digits = Arc::new(d);
+
+    // producer thread
+    // will make the 2-tuples that the threads will use as work quantums
+    {
+        let primes = primes.clone();
+        let digits = digits.clone();
+        let start_t = start_t.clone();
+        thread::spawn(move || {
+            for i in 0..primes.len() {
+                for k in i..primes.len() {
+                    tx_p.send((i,k));
+                }
+                println!("{} : Factor {} is completely queued",
+                         time::SteadyTime::now() - start_t, primes[i])
+            }
+        });
+        // drop(tx_p); // move takes over tx_p
     }
+
+    let recv = Arc::new(Mutex::new(rx_c));
+    for _ in 0..THREAD_LIMIT {
+        let recv = recv.clone();
+        let tx = tx_c.clone();
+
+        let primes = primes.clone();
+        let digits = digits.clone();
+
+        thread::spawn(move || {
+            loop {
+                let res = {
+                    let lock = recv.lock().unwrap();
+                    lock.recv()
+                }; // drop lock on mutex
+
+                let fin = match res {
+                    Ok((i,k)) => find_matching_digits(i,k,&primes,&digits),
+                    Err(_) => return, // channel is poisoned
+                };
+
+                if let Some(r) = fin {
+                    tx.send(r);
+                }
+            }
+        });
+    }
+    // clean up channels
+    // need to drop references in this thread,
+    // allowing channels to be closed when threads end
+    drop(tx_c);
+    drop(recv);
+    // end thread set up }}}
+
+    // start wait {{{
+    for i in rx_m.iter() {
+        println!("Found jac-3 number: {}", i);
+    }
+    // end wait }}}
     println!("{} : Did not find digit matching under {}",
              time::SteadyTime::now() - start_t, UPPER_BOUND);
 }
